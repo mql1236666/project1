@@ -46,8 +46,19 @@ for i in ['id', 'employmentTitle', 'verificationStatus', 'purpose',
           'postCode', 'regionCode', 'initialListStatus', 'applicationType', 'title', 'policyCode']:
     data[i] = data[i].astype(str)
 
-# 1.6 删除无实际含义、唯一值的特征
+# 1.4 删除无实际含义、唯一值的特征
 data.drop(['id', 'policyCode'], axis=1, inplace=True)
+
+# 1.5缺失值处理
+# 1.5.1缺失值比例最大不大超过%，考虑均值填充，模型效果太好，再考虑删除或算法填充
+for fea in category_feature:
+    data[fea] = data[fea].fillna(data[fea].mode()[0])
+# 1.5.2连续数据中位数填充
+for fea in numerical_feature:
+    data[fea] = data[fea].fillna(data[fea].median())
+print(data.info())
+
+# 1.6异常值处理
 # 划分数值型和类别型数据
 numerical_feature = list(data.select_dtypes(exclude=['object', 'datetime64']).columns)
 category_feature = list(data.select_dtypes(include='object').columns)
@@ -70,18 +81,8 @@ def get_numercial_serial_features(df, feas):
 
 
 numerical_serial_feature, numerical_noserial_feature = get_numercial_serial_features(data, numerical_feature)
-# 1.4缺失值处理
-# 1.4.1缺失值比例最大不大超过%，考虑均值填充，模型效果太好，再考虑删除或算法填充
-for fea in category_feature:
-    data[fea] = data[fea].fillna(data[fea].mode()[0])
-# 1.3.3连续数据中位数填充
-for fea in numerical_feature:
-    data[fea] = data[fea].fillna(data[fea].median())
-print(data.info())
 
-# 1.5异常值处理
-# 划分数据集，测试集不处理异常值
-# 分层抽样，保证训练集测试集数据分布一致
+# 划分数据集，测试集不处理异常值#，分层抽样，保证训练集测试集数据分布一致
 train, test = train_test_split(data, test_size=0.2, stratify=data.loc[:, 'isDefault'], random_state=2022)
 # 异常值删除,债务收入比不可能是一个负值，删除
 train = train[train['dti'] >= 0]
